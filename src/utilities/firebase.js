@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken } from "firebase/messaging";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -19,15 +19,14 @@ export const firebaseApp = initializeApp(firebaseConfig);
 export const firebaseMessaging = getMessaging(firebaseApp);
 
 export const getOrRegisterServiceWorker = async () => {
-  if ("serviceWorker" in navigator) {
+  if (typeof window !== "undefined" && "serviceWorker" in navigator) {
     const serviceWorker = await window.navigator.serviceWorker.getRegistration(
       "/firebase-push-notification-scope"
     );
     if (serviceWorker) return serviceWorker;
 
-    const configParams = new URLSearchParams(firebaseConfig);
     return window.navigator.serviceWorker.register(
-      `/firebase-messaging-sw.js?${configParams.toString()}`,
+      "/firebase-messaging-sw.js",
       {
         scope: "/firebase-push-notification-scope",
       }
@@ -46,8 +45,3 @@ export const getFirebaseToken = async () => {
     serviceWorkerRegistration,
   });
 };
-
-export const onForegroundMessage = () =>
-  new Promise((resolve) =>
-    onMessage(firebaseMessaging, (payload) => resolve(payload))
-  );

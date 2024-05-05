@@ -1,5 +1,6 @@
+import { onMessage } from "firebase/messaging";
 import { useEffect, useState } from "react";
-import { getFirebaseToken, onForegroundMessage } from "./utilities/firebase";
+import { firebaseMessaging, getFirebaseToken } from "./utilities/firebase";
 
 const PushNotification = () => {
   const [shouldGetToken, setShouldGetToken] = useState(false);
@@ -35,17 +36,10 @@ const PushNotification = () => {
 
   useEffect(() => {
     if (shouldGetNotification) {
-      onForegroundMessage()
-        .then((payload) => {
-          console.log("Received foreground message: ", payload);
-          setPushNotifications((prev = []) => [payload, ...prev]);
-        })
-        .catch((err) =>
-          console.log(
-            "An error occured while retrieving foreground message. ",
-            err
-          )
-        );
+      onMessage(firebaseMessaging, (payload) => {
+        console.log("Received foreground message: ", payload);
+        setPushNotifications((prev = []) => [payload, ...prev]);
+      });
     }
   }, [shouldGetNotification]);
 

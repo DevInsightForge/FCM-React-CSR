@@ -6,45 +6,6 @@ self.importScripts(
   "https://www.gstatic.com/firebasejs/10.11.1/firebase-messaging-compat.js"
 );
 
-self.firebaseConfig = {
-  apiKey: true,
-  projectId: true,
-  messagingSenderId: true,
-  appId: true,
-};
-
-// Set Firebase configuration, once available
-self.addEventListener("fetch", () => {
-  try {
-    const urlParams = new URLSearchParams(self.location.search);
-    self.firebaseConfig = Object.fromEntries(urlParams);
-  } catch (err) {
-    console.error("Failed to add event listener", err);
-  }
-});
-
-try {
-  firebase.initializeApp(self.firebaseConfig);
-} catch (error) {
-  console.error("Error initializing Firebase:", error);
-}
-
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage(({ notification, collapseKey, data }) => {
-  console.log("Received background message: ", notification);
-
-  const notificationTitle = notification.title;
-  const notificationOptions = {
-    body: notification.body,
-    icon: notification.image,
-    tag: collapseKey,
-    data: data,
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
 self.addEventListener("notificationclick", function (event) {
   event.notification.close(); // Android needs explicit close.
   const actionPathname = event?.notification?.data?.action_pathname || "/";
@@ -66,3 +27,15 @@ self.addEventListener("notificationclick", function (event) {
       })
   );
 });
+
+// "Default" Firebase configuration (prevents errors)
+const defaultConfig = {
+  apiKey: true,
+  projectId: true,
+  messagingSenderId: true,
+  appId: true,
+};
+
+// Initialize Firebase app
+firebase.initializeApp(defaultConfig);
+firebase.messaging();
