@@ -8,7 +8,8 @@ self.importScripts(
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close(); // Android needs explicit close.
-  const actionPathname = event?.notification?.data?.action_pathname || "/";
+  const actionPathname =
+    event?.notification?.data?.FCM_MSG?.data?.action_pathname || "/";
 
   event.waitUntil(
     self.clients
