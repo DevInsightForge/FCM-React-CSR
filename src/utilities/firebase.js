@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken } from "firebase/messaging";
+import {
+  deleteToken,
+  getMessaging,
+  getToken,
+  onMessage,
+} from "firebase/messaging";
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -17,18 +22,19 @@ export const firebaseApp = initializeApp(firebaseConfig);
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 export const firebaseMessaging = getMessaging(firebaseApp);
+const serviceWorkerScope = "/firebase-push-notification-scope";
 
 export const getOrRegisterServiceWorker = async () => {
   if (typeof window !== "undefined" && "serviceWorker" in navigator) {
     const serviceWorker = await window.navigator.serviceWorker.getRegistration(
-      "/firebase-push-notification-scope"
+      serviceWorkerScope
     );
     if (serviceWorker) return serviceWorker;
 
     return window.navigator.serviceWorker.register(
       "/firebase-messaging-sw.js",
       {
-        scope: "/firebase-push-notification-scope",
+        scope: serviceWorkerScope,
       }
     );
   }
@@ -44,4 +50,26 @@ export const getFirebaseToken = async () => {
     vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
     serviceWorkerRegistration,
   });
+};
+
+export const removeFirebaseServiceWorker = async () => {
+  if ("serviceWorker" in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      if (registrations?.length < 1) return;
+
+      deleteToken(firebaseMessaging);
+      for (let registration of registrations) {
+        await registration.unregister();
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+};
+
+export const registerOnMessageCallback = (callbackFn = () => {}) => {
+  onMessage(firebaseMessaging, callbackFn);
 };

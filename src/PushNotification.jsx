@@ -1,11 +1,21 @@
-import { onMessage } from "firebase/messaging";
+import axios from "axios";
 import { useEffect, useState } from "react";
-import { firebaseMessaging, getFirebaseToken } from "./utilities/firebase";
+import {
+  getFirebaseToken,
+  registerOnMessageCallback,
+  removeFirebaseServiceWorker,
+} from "./utilities/firebase";
+
+const notificationServer = axios.create({
+  baseURL: import.meta.env.VITE_NOTIFICATION_SERVER,
+});
 
 const PushNotification = () => {
   const [shouldGetToken, setShouldGetToken] = useState(false);
   const [shouldGetNotification, setShouldGetNotification] = useState(false);
   const [pushNotifications, setPushNotifications] = useState([]);
+
+  console.log({ shouldGetNotification, shouldGetToken });
 
   useEffect(() => {
     Notification.requestPermission().then((permission) => {
@@ -22,7 +32,14 @@ const PushNotification = () => {
         .then((firebaseToken) => {
           console.log("Firebase token: ", firebaseToken);
           if (firebaseToken) {
-            setShouldGetNotification(true);
+            notificationServer
+              .post("/api/PushNotification/Sync", {
+                userId: 1,
+                deviceId: firebaseToken,
+              })
+              .then(() => {
+                setShouldGetNotification(true);
+              });
           }
         })
         .catch((err) =>
@@ -36,15 +53,36 @@ const PushNotification = () => {
 
   useEffect(() => {
     if (shouldGetNotification) {
-      onMessage(firebaseMessaging, (payload) => {
+      console.log("Listening for notification");
+      registerOnMessageCallback((payload) => {
         console.log("Received foreground message: ", payload);
         setPushNotifications((prev = []) => [payload, ...prev]);
       });
     }
   }, [shouldGetNotification]);
 
+  const handleSubscription = async () => {
+    const token = await getFirebaseToken();
+    const { status } = await notificationServer.delete(
+      `/api/PushNotification/Remove/${token}`
+    );
+    if (status !== 200) return;
+    const isSuccess = await removeFirebaseServiceWorker();
+
+    if (isSuccess) {
+      setShouldGetToken(false);
+      setShouldGetNotification(false);
+      setPushNotifications([]);
+    }
+  };
+
   return (
     <div>
+      <div>
+        {shouldGetNotification && (
+          <button onClick={handleSubscription}>Remove Subscription</button>
+        )}
+      </div>
       <div
         style={{
           backgroundColor: "#f0f0f0",
